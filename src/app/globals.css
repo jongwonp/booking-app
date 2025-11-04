@@ -1,0 +1,12 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    sans-serif;
+  line-height: 1.6;
+}
+a {
+  color: inherit;
+  text-decoration: underline;
+}
