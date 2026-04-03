@@ -37,8 +37,11 @@ export async function PATCH(_req: Request, { params }: { params: { id: string } 
       return { status: 200 as const, body: u };
     }, { isolationLevel: "Serializable" });
 
-    return NextResponse.json(out.body, { status: out.status });
+    if (out.status === 200) {
+      return NextResponse.json({ ok: true, data: out.body }, { status: 200 });
+    }
+    return NextResponse.json({ ok: false, ...out.body }, { status: out.status });
   } catch (e) {
-    return NextResponse.json({ error: "server" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "server" }, { status: 500 });
   }
 }

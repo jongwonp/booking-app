@@ -7,6 +7,6 @@ export async function PATCH(_: Request, { params }: { params:{ id:string } }) {
     where:{ id}, data:{ status:"CANCELLED" },
     select:{ id:true, status:true }
   }).catch(()=>null);
-  if (!r) return NextResponse.json({ error:"not found" }, { status:404 });
-  return NextResponse.json(r);
+  if (!r) return NextResponse.json({ ok: false, error: "not found" }, { status: 404 });
+  return NextResponse.json({ ok: true, data: r });
 }

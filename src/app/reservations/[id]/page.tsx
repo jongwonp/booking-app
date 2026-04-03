@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 export default async function ReservationDetailPage({ params }: Props) {
+  const { id } = await params;
   const reservation = await prisma.reservation.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { listing: true },
   });
 
