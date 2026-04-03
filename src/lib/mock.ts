@@ -1,5 +1,4 @@
 import "server-only";
-import { listings } from "@/lib/data";
 import { loadJSON, saveJSON } from "@/lib/store";
 
 export type Reservation = {
@@ -46,4 +45,3 @@ export async function deleteReservation(id: string): Promise<boolean> {
 export function genId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 }
-export { listings };
