@@ -1,10 +1,10 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
 }
 
 enum ReservationStatus {
@@ -14,8 +14,8 @@ enum ReservationStatus {
 }
 
 model User {
-  id        String        @id @default(uuid())
-  email     String        @unique
+  id        String        @id @default(cuid())
+  email     String?       @unique
   name      String?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -23,30 +23,40 @@ model User {
 }
 
 model Listing {
-  id           String        @id @default(uuid())
-  slug         String        @unique
-  title        String
+  id          String         @id @default(cuid())
+  title       String
+  description String?
   nightlyPrice Int
-  location     String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  location    String
+  maxGuests   Int             @default(2)
+  imageUrls   String[]        // Cloudinary 도입 전까지 임시
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   reservations Reservation[]
+  @@index([location])
+  @@index([nightlyPrice])
 }
 
 model Reservation {
-  id         String             @id @default(uuid())
-  userId     String
-  listingId  String
-  checkIn    DateTime
-  checkOut   DateTime
-  status     ReservationStatus  @default(HOLD)
-  totalPrice Int
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
+  id           String             @id @default(cuid())
+  listingId    String
+  userId       String
+  checkIn      DateTime
+  checkOut     DateTime
+  status       ReservationStatus  @default(HOLD)
+  holdExpiresAt DateTime?
+  totalPrice   Int
+  guests       Int                @default(1)
 
-  user    User    @relation(fields: [userId], references: [id])
-  listing Listing @relation(fields: [listingId], references: [id])
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
-  @@index([listingId, checkIn, checkOut])
-  @@index([status])
+  listing      Listing            @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, checkIn])
+  @@index([listingId, status])
+  @@unique([listingId, checkIn, checkOut])
+  checkInDate   DateTime? @db.Date @ignore
+  checkOutDate  DateTime? @db.Date @ignore
 }

@@ -1,31 +1,87 @@
 import { NextResponse } from "next/server";
-import { genId, listings, memoryDB, type Reservation } from "@/lib/mock";
+import { prisma } from "@/lib/prisma";
+import { CreateReservation } from "@/lib/validators";
+import { overlapWhere } from "@/lib/overlap";
+import { calcTotal } from "@/lib/pricing";
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({} as any));
-  const { listingId, checkIn, checkOut } = body || {};
+  try {
+    const v = CreateReservation.parse(await req.json());
+    const checkIn = new Date(v.checkIn);
+    const checkOut = new Date(v.checkOut);
 
-  // 최소 유효성 검사
-  const exists = listings.find((l) => l.id === listingId);
-  if (!exists) {
-    return NextResponse.json({ error: "Invalid listingId" }, { status: 400 });
+    const reservation = await prisma.$transaction(
+      async (tx) => {
+        const [listing, user] = await Promise.all([
+          tx.listing.findUnique({ where: { id: v.listingId } }),
+          tx.user.findUnique({ where: { id: v.userId } }),
+        ]);
+
+        if (!listing || !user) {
+          // → 나중에 catch에서 400 처리
+          throw new Error("invalid-refs");
+        }
+
+        const hasOverlap = await tx.reservation.findFirst({
+          where: overlapWhere(v.listingId, checkIn, checkOut),
+        });
+
+        if (hasOverlap) {
+          // → 나중에 catch에서 409 처리
+          throw new Error("conflict");
+        }
+
+        const totalPrice = calcTotal(listing.nightlyPrice, checkIn, checkOut);
+
+        // 선택해서 반환할 필드만
+        const r = await tx.reservation.create({
+          data: {
+            listingId: v.listingId,
+            userId: v.userId,
+            checkIn,
+            checkOut,
+            status: "HOLD",
+            holdExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
+            totalPrice,
+          },
+          select: { id: true, status: true, totalPrice: true },
+        });
+
+        return r;
+      },
+      { isolationLevel: "Serializable" }
+    );
+
+    // ✅ 성공 응답: 항상 { ok: true, data: {...} }
+    return NextResponse.json({ ok: true, data: reservation }, { status: 201 });
+  } catch (e: any) {
+    // ✅ 검증 실패 (Zod)
+    if (e?.name === "ZodError") {
+      return NextResponse.json(
+        { ok: false, error: "validation", details: e.errors },
+        { status: 400 }
+      );
+    }
+
+    // ✅ listing/user 못 찾은 경우
+    if (e?.message === "invalid-refs") {
+      return NextResponse.json(
+        { ok: false, error: "invalid-refs" },
+        { status: 400 }
+      );
+    }
+
+    // ✅ 겹치는 예약
+    if (e?.message === "conflict") {
+      return NextResponse.json(
+        { ok: false, error: "conflict" },
+        { status: 409 }
+      );
+    }
+
+    // ✅ 그 외 서버 에러
+    console.error(e);
+    return NextResponse.json({ ok: false, error: "server" }, { status: 500 });
   }
-
-  const today = new Date();
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-
-  const id = genId("rsv");
-  const rsv: Reservation = {
-    id,
-    listingId,
-    status: "HOLD",
-    checkIn: checkIn || iso(today),
-    checkOut: checkOut || iso(new Date(today.getTime() + 86400000)),
-    createdAt: Date.now(),
-  };
-
-  memoryDB.reservations.set(id, rsv);
-  return NextResponse.json(rsv, { status: 201 });
 }
-
-export const runtime = "nodejs";

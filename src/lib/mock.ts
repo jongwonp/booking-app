@@ -1,53 +1,49 @@
-export type Listing = {
-  id: string;
-  slug: string;
-  title: string;
-  nightlyPrice: number;
-  location: string;
-  image: string;
-};
+import "server-only";
+import { listings } from "@/lib/data";
+import { loadJSON, saveJSON } from "@/lib/store";
 
 export type Reservation = {
   id: string;
   listingId: string;
   status: "HOLD" | "CONFIRMED";
-  checkIn: string; // YYYY-MM-DD
-  checkOut: string; // YYYY-MM-DD
-  createdAt: number; // epoch(ms)
+  checkIn: string;
+  checkOut: string;
+  createdAt: number;
 };
 
-// 하드코딩 샘플 숙소
-export const listings: Listing[] = [
-  {
-    id: "l_001",
-    slug: "seoul-riverside-room",
-    title: "서울 리버사이드 룸",
-    nightlyPrice: 89000,
-    location: "Seoul",
-    image: "https://picsum.photos/seed/seoul/800/500",
-  },
-  {
-    id: "l_002",
-    slug: "busan-ocean-view",
-    title: "부산 오션뷰 스튜디오",
-    nightlyPrice: 109000,
-    location: "Busan",
-    image: "https://picsum.photos/seed/busan/800/500",
-  },
-];
+type StoreShape = { reservations: Record<string, Reservation> };
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __memory__reservations: Map<string, Reservation> | undefined;
+async function readStore(): Promise<StoreShape> {
+  return loadJSON<StoreShape>({ reservations: {} });
 }
-const rsvStore =
-  globalThis.__memory__reservations ?? new Map<string, Reservation>();
-globalThis.__memory__reservations = rsvStore;
+async function writeStore(s: StoreShape) {
+  await saveJSON<StoreShape>(s);
+}
 
-export const memoryDB = {
-  reservations: rsvStore,
-};
+export async function getAllReservations(): Promise<Reservation[]> {
+  const s = await readStore();
+  return Object.values(s.reservations);
+}
+export async function getReservation(id: string): Promise<Reservation | undefined> {
+  const s = await readStore();
+  return s.reservations[id];
+}
+export async function putReservation(r: Reservation): Promise<void> {
+  const s = await readStore();
+  s.reservations[r.id] = r;
+  await writeStore(s);
+}
+
+/** 🔥 실제 삭제 */
+export async function deleteReservation(id: string): Promise<boolean> {
+  const s = await readStore();
+  if (!(id in s.reservations)) return false;
+  delete s.reservations[id];
+  await writeStore(s);
+  return true;
+}
 
 export function genId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 }
+export { listings };

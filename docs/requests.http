@@ -1,0 +1,29 @@
+@host = http://localhost:3000
+
+###
+# 1) 생성
+POST {{host}}/api/reservations
+Content-Type: application/json
+
+{
+  "listingId": "cmhuiibdv0000tua79c146n35", 
+  "userId": "cmhuiihw30001tua75fik4k0r",  
+  "checkIn": "2025-11-20",                    // ISO 날짜
+  "checkOut": "2025-11-22",
+  "guests": 2                                 // 스키마에 있다면
+}
+###
+# 2) (응답 id 수동 복사) 단건 조회
+GET {{host}}/api/reservations/rsv_wbj7cu
+
+###
+# 3) 삭제
+# 204 기대
+DELETE {{host}}/api/reservations/rsv_wbj7cu
+
+###
+# 4) 삭제 확인 (404 기대)
+GET {{host}}/api/reservations/rsv_wbj7cu
+
+###
+PATCH {{{host}}}/api/reservations/cmhuj6la10001tu561r5215c3/confirm

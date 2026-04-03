@@ -1,0 +1,44 @@
+// src/app/api/reservations/[id]/confirm/route.ts  (PATCH)
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ReservationStatus } from "@prisma/client";
+import { overlapWhere } from "@/lib/overlap";
+import { calcTotal } from "@/lib/pricing";
+export const runtime = "nodejs";
+
+export async function PATCH(_req: Request, { params }: { params: { id: string } }) {
+  try {
+    const out = await prisma.$transaction(async (tx) => {
+      const { id } = await params;
+      const r = await tx.reservation.findUnique({ where: { id } });
+      if (!r) return { status: 404 as const, body: { error: "not found" } };
+      if (r.status !== "HOLD" || (r.holdExpiresAt && r.holdExpiresAt < new Date()))
+        return { status: 409 as const, body: { error: "conflict" } };
+
+      // 최신 겹침 재검증
+      const overlap = await tx.reservation.findFirst({
+        where: overlapWhere(r.listingId, r.checkIn, r.checkOut, r.id),
+      });
+      if (overlap) return { status: 409 as const, body: { error: "conflict" } };
+
+      // totalPrice 보정(혹시 0이면 계산)
+      let total = r.totalPrice;
+      if (!total) {
+        const listing = await tx.listing.findUnique({ where: { id: r.listingId }, select: { nightlyPrice: true } });
+        if (!listing) return { status: 400 as const, body: { error: "listing missing" } };
+        total = calcTotal(listing.nightlyPrice, r.checkIn, r.checkOut);
+      }
+
+      const u = await tx.reservation.update({
+        where: { id: r.id },
+        data: { status: ReservationStatus.CONFIRMED, totalPrice: total },
+        select: { id: true, status: true, totalPrice: true },
+      });
+      return { status: 200 as const, body: u };
+    }, { isolationLevel: "Serializable" });
+
+    return NextResponse.json(out.body, { status: out.status });
+  } catch (e) {
+    return NextResponse.json({ error: "server" }, { status: 500 });
+  }
+}
