@@ -15,7 +15,11 @@ export async function POST(req: Request) {
       async (tx) => {
         const [listing, user] = await Promise.all([
           tx.listing.findUnique({ where: { id: v.listingId } }),
-          tx.user.findUnique({ where: { id: v.userId } }),
+          tx.user.upsert({
+            where: { id: v.userId },
+            create: { id: v.userId, email: `${v.userId}@demo.local` },
+            update: {},
+          }),
         ]);
 
         if (!listing || !user) {
