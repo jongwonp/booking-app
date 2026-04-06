@@ -13,50 +13,95 @@ enum ReservationStatus {
   CANCELLED
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
-  id        String        @id @default(cuid())
-  email     String?       @unique
-  name      String?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  reservations Reservation[]
+  id            String        @id @default(cuid())
+  name          String?
+  email         String?       @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role          @default(USER)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  reservations  Reservation[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Listing {
-  id          String         @id @default(cuid())
-  title       String
-  description String?
+  id           String        @id @default(cuid())
+  title        String
+  description  String?
   nightlyPrice Int
-  location    String
-  maxGuests   Int             @default(2)
-  imageUrls   String[]        // Cloudinary 도입 전까지 임시
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  location     String
+  maxGuests    Int           @default(2)
+  imageUrls    String[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   reservations Reservation[]
+
   @@index([location])
   @@index([nightlyPrice])
 }
 
 model Reservation {
-  id           String             @id @default(cuid())
-  listingId    String
-  userId       String
-  checkIn      DateTime
-  checkOut     DateTime
-  status       ReservationStatus  @default(HOLD)
+  id            String            @id @default(cuid())
+  listingId     String
+  userId        String
+  checkIn       DateTime
+  checkOut      DateTime
+  status        ReservationStatus @default(HOLD)
   holdExpiresAt DateTime?
-  totalPrice   Int
-  guests       Int                @default(1)
+  totalPrice    Int
+  guests        Int               @default(1)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-
-  listing      Listing            @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([listingId, checkIn])
   @@index([listingId, status])
   @@unique([listingId, checkIn, checkOut])
-  checkInDate   DateTime? @db.Date @ignore
-  checkOutDate  DateTime? @db.Date @ignore
+  checkInDate  DateTime? @db.Date @ignore
+  checkOutDate DateTime? @db.Date @ignore
 }
