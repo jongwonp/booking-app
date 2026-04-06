@@ -1,5 +1,5 @@
-// src/app/listings/[id]/page.tsx
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import ReservationWidget from "@/components/reservation/ReservationWidget";
 export const runtime = "nodejs";
 
@@ -9,6 +9,7 @@ export default async function ListingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await auth();
   const listing = await prisma.listing.findUnique({
     where: { id },
     select: {
@@ -52,11 +53,20 @@ export default async function ListingPage({
         </section>
 
         <aside>
-          <ReservationWidget
-            listingId={listing.id}
-            userId={"demo-user"} // 지금은 하드코딩 유저
-            nightlyPrice={listing.nightlyPrice}
-          />
+          {session?.user ? (
+            <ReservationWidget
+              listingId={listing.id}
+              userId={session.user.id}
+              nightlyPrice={listing.nightlyPrice}
+            />
+          ) : (
+            <div className="rounded-xl border p-6 text-center space-y-3">
+              <p className="text-sm text-slate-600">예약하려면 로그인이 필요합니다.</p>
+              <a href="/login" className="inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700">
+                로그인
+              </a>
+            </div>
+          )}
         </aside>
       </div>
     </div>

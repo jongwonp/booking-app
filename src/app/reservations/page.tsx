@@ -1,11 +1,13 @@
 // src/app/reservations/page.tsx
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import Link from "next/link";
 
 export default async function MyReservationsPage() {
+  const session = await auth();
   const reservations = await prisma.reservation.findMany({
+    where: { userId: session!.user.id },
     orderBy: { createdAt: "desc" },
-    // where: { userId: ... } // 나중에 인증 붙을 때
   });
 
   if (reservations.length === 0) {
