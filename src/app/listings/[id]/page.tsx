@@ -59,9 +59,25 @@ export default async function ListingPage({
         </p>
       </header>
 
+      {listing.imageUrls.length > 0 ? (
+        <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
+          {listing.imageUrls.map((url, i) => (
+            <img
+              key={i}
+              src={url}
+              alt={`${listing.title} 이미지 ${i + 1}`}
+              className="w-full h-48 object-cover rounded-lg"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="w-full h-56 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 text-sm">
+          이미지 없음
+        </div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
         <section className="space-y-4">
-          {/* 상세 설명 / 이미지 등 기존 내용 */}
           <p className="text-sm text-slate-700 whitespace-pre-line">
             {listing.description}
           </p>
