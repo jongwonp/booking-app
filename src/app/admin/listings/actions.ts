@@ -25,9 +25,8 @@ export async function createListing(formData: FormData) {
       description,
       nightlyPrice,
       maxGuests,
-      // isActive 필드가 schema에 있다면 포함
-      // ...(prisma.listing.fields?.isActive && { isActive }),
-    } as any,
+      isActive,
+    },
   });
 
   redirect("/admin/listings");
@@ -58,8 +57,8 @@ export async function updateListing(formData: FormData) {
       description,
       nightlyPrice,
       maxGuests,
-      // ...(prisma.listing.fields?.isActive && { isActive }),
-    } as any,
+      isActive,
+    },
   });
 
   redirect("/admin/listings");

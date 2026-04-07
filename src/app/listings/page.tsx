@@ -4,6 +4,7 @@ import { ListingCard } from "@/components/listing/ListingCard";
 
 export default async function ListingsPage() {
   const listings = await prisma.listing.findMany({
+    where: { isActive: true },
     orderBy: { createdAt: "desc" },
   });
 

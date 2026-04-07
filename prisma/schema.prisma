@@ -75,6 +75,7 @@ model Listing {
   location     String
   maxGuests    Int           @default(2)
   imageUrls    String[]
+  isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   reservations Reservation[]
