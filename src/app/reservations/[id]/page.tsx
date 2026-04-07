@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { confirmReservationAction, cancelReservationAction } from "./actions";
+import Button from "@/components/ui/Button";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -36,8 +38,8 @@ export default async function ReservationDetailPage({ params }: Props) {
 
       <section className="space-y-2 text-sm text-slate-700">
         <p>
-          기간: {reservation.checkIn.toDateString()} ~{" "}
-          {reservation.checkOut.toDateString()}
+          기간: {reservation.checkIn.toLocaleDateString("ko-KR")} ~{" "}
+          {reservation.checkOut.toLocaleDateString("ko-KR")}
         </p>
         <p>
           인원: <span className="font-medium">{reservation.guests ?? 1}명</span>
@@ -47,7 +49,18 @@ export default async function ReservationDetailPage({ params }: Props) {
         </p>
       </section>
 
-      {/* 필요하면 여기 아래에 확정/취소 버튼 추가 (지금은 ReservationWidget에서 처리 중) */}
+      {reservation.status !== "CANCELLED" && (
+        <div className="flex gap-2">
+          {reservation.status === "HOLD" && (
+            <form action={confirmReservationAction.bind(null, reservation.id)}>
+              <Button type="submit" variant="secondary">확정하기</Button>
+            </form>
+          )}
+          <form action={cancelReservationAction.bind(null, reservation.id)}>
+            <Button type="submit" variant="ghost">취소하기</Button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
