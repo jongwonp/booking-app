@@ -136,9 +136,11 @@ export default function ReservationWidget({
         numberOfMonths={1}
         classNames={{
           root: "text-sm",
-          day_selected: "bg-indigo-600 text-white rounded",
-          day_range_middle: "bg-indigo-100",
-          day_disabled: "text-gray-300 line-through",
+          selected: "bg-indigo-600 text-white rounded",
+          range_middle: "bg-indigo-100",
+          range_start: "bg-indigo-600 text-white rounded-l",
+          range_end: "bg-indigo-600 text-white rounded-r",
+          disabled: "text-red-300 line-through opacity-50 cursor-not-allowed",
         }}
       />
 
