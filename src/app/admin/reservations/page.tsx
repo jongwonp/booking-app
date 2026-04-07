@@ -35,7 +35,7 @@ export default async function AdminReservationsPage() {
                     {r.listing?.title ?? "삭제된 숙소"}
                   </div>
                   <div className="text-xs text-slate-500">
-                    {r.checkIn.toDateString()} ~ {r.checkOut.toDateString()}
+                    {r.checkIn.toLocaleDateString("ko-KR")} ~ {r.checkOut.toLocaleDateString("ko-KR")}
                   </div>
                 </div>
                 <div className="text-xs font-semibold text-slate-700">
