@@ -1,5 +1,9 @@
 "use client";
 import { useMemo, useState } from "react";
+import { DayPicker, DateRange } from "react-day-picker";
+import { ko } from "date-fns/locale";
+import { isBefore, isWithinInterval, startOfDay } from "date-fns";
+import "react-day-picker/style.css";
 import {
   createReservation,
   confirmReservation,
@@ -7,43 +11,63 @@ import {
 } from "@/lib/api";
 import Button from "@/components/ui/Button";
 
+type BookedRange = { from: string; to: string };
+
 export default function ReservationWidget({
   listingId,
   userId,
   nightlyPrice,
+  bookedRanges = [],
 }: {
   listingId: string;
   userId: string;
   nightlyPrice: number;
+  bookedRanges?: BookedRange[];
 }) {
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
+  const [range, setRange] = useState<DateRange | undefined>();
   const [reservationId, setReservationId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(
-    null
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const today = startOfDay(new Date());
+
+  // 예약 불가 날짜 범위 (react-day-picker disabled prop용)
+  const disabledRanges = useMemo(
+    () =>
+      bookedRanges.map((r) => ({
+        from: startOfDay(new Date(r.from)),
+        to: startOfDay(new Date(r.to)),
+      })),
+    [bookedRanges]
   );
 
-  const todayStr = new Date().toISOString().slice(0, 10);
   const nights = useMemo(() => {
-    if (!checkIn || !checkOut) return 0;
-    const a = new Date(checkIn),
-      b = new Date(checkOut);
-    const d = Math.ceil((+b - +a) / 86_400_000);
+    if (!range?.from || !range?.to) return 0;
+    const d = Math.ceil((+range.to - +range.from) / 86_400_000);
     return d > 0 ? d : 0;
-  }, [checkIn, checkOut]);
+  }, [range]);
 
-  const total = nights * (nightlyPrice ?? 0);
+  const total = nights * nightlyPrice;
 
-  const iso = (d: string) => (d ? new Date(d).toISOString() : "");
+  // 선택한 범위가 예약된 날짜와 겹치는지 검사
+  const hasConflict = useMemo(() => {
+    if (!range?.from || !range?.to) return false;
+    return disabledRanges.some(
+      (r) =>
+        isWithinInterval(r.from, { start: range.from!, end: range.to! }) ||
+        isWithinInterval(r.to, { start: range.from!, end: range.to! }) ||
+        (isBefore(r.from, range.from!) && isBefore(range.to!, r.to))
+    );
+  }, [range, disabledRanges]);
 
   async function onCreate() {
-    if (nights < 1) {
-      setMsg({
-        type: "err",
-        text: "체크아웃 날짜는 체크인보다 나중이어야 합니다.",
-      });
+    if (nights < 1 || !range?.from || !range?.to) {
+      setMsg({ type: "err", text: "날짜를 선택해주세요." });
+      return;
+    }
+    if (hasConflict) {
+      setMsg({ type: "err", text: "선택한 날짜에 이미 예약이 있습니다." });
       return;
     }
     setLoading(true);
@@ -52,8 +76,8 @@ export default function ReservationWidget({
       const r = await createReservation({
         listingId,
         userId,
-        checkIn: iso(checkIn),
-        checkOut: iso(checkOut),
+        checkIn: range.from.toISOString(),
+        checkOut: range.to.toISOString(),
       });
       setReservationId(r.id);
       setStatus(r.status);
@@ -101,54 +125,45 @@ export default function ReservationWidget({
     }
   }
 
-  const disabled = loading || nights < 1;
-
   return (
     <div className="space-y-3 rounded-2xl border p-4 shadow-sm">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <label className="text-sm">
-          체크인
-          <input
-            type="date"
-            min={todayStr}
-            className="mt-1 w-full rounded border p-2 text-sm"
-            value={checkIn}
-            onChange={(e) => setCheckIn(e.target.value)}
-            data-testid="checkin" /* ✅ 테스트용 ID */
-          />
-        </label>
-        <label className="text-sm">
-          체크아웃
-          <input
-            type="date"
-            min={checkIn || todayStr}
-            className="mt-1 w-full rounded border p-2"
-            value={checkOut}
-            onChange={(e) => setCheckOut(e.target.value)}
-            data-testid="checkout" /* ✅ 테스트용 ID */
-          />
-        </label>
-      </div>
+      <DayPicker
+        mode="range"
+        selected={range}
+        onSelect={setRange}
+        locale={ko}
+        disabled={[{ before: today }, ...disabledRanges]}
+        numberOfMonths={1}
+        classNames={{
+          root: "text-sm",
+          day_selected: "bg-indigo-600 text-white rounded",
+          day_range_middle: "bg-indigo-100",
+          day_disabled: "text-gray-300 line-through",
+        }}
+      />
 
       <div className="text-sm text-gray-700">
-        1박당 ₩{nightlyPrice?.toLocaleString() ?? "0"} ·
+        1박당 ₩{nightlyPrice?.toLocaleString()} ·{" "}
         {nights > 0 ? (
           <>
-            {" "}
             {nights}박 합계 ₩{total.toLocaleString()}
           </>
         ) : (
-          " 날짜를 선택하세요"
+          "날짜를 선택하세요"
         )}
       </div>
 
+      {hasConflict && (
+        <p className="text-xs text-red-500">선택한 범위에 이미 예약된 날짜가 포함되어 있습니다.</p>
+      )}
+
       <div className="flex flex-wrap gap-2">
-        <Button onClick={onCreate} data-testid="reserve" disabled={disabled}>
-          {loading
-            ? "처리중..."
-            : reservationId
-            ? "새 예약 생성"
-            : "예약 만들기(HOLD)"}
+        <Button
+          onClick={onCreate}
+          data-testid="reserve"
+          disabled={loading || nights < 1 || hasConflict}
+        >
+          {loading ? "처리중..." : reservationId ? "새 예약 생성" : "예약 만들기(HOLD)"}
         </Button>
 
         <Button

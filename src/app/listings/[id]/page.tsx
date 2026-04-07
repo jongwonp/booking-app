@@ -10,18 +10,33 @@ export default async function ListingPage({
 }) {
   const { id } = await params;
   const session = await auth();
-  const listing = await prisma.listing.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      title: true,
-      location: true,
-      nightlyPrice: true,
-      imageUrls: true,
-      maxGuests: true,
-      description: true,
-    },
-  });
+  const [listing, reservations] = await Promise.all([
+    prisma.listing.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        location: true,
+        nightlyPrice: true,
+        imageUrls: true,
+        maxGuests: true,
+        description: true,
+      },
+    }),
+    prisma.reservation.findMany({
+      where: {
+        listingId: id,
+        status: { in: ["HOLD", "CONFIRMED"] },
+        checkOut: { gte: new Date() },
+      },
+      select: { checkIn: true, checkOut: true },
+    }),
+  ]);
+
+  const bookedRanges = reservations.map((r) => ({
+    from: r.checkIn.toISOString(),
+    to: r.checkOut.toISOString(),
+  }));
   if (!listing) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
@@ -56,8 +71,9 @@ export default async function ListingPage({
           {session?.user ? (
             <ReservationWidget
               listingId={listing.id}
-              userId={session.user.id}
+              userId={session.user.id!}
               nightlyPrice={listing.nightlyPrice}
+              bookedRanges={bookedRanges}
             />
           ) : (
             <div className="rounded-xl border p-6 text-center space-y-3">
