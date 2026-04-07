@@ -6,16 +6,23 @@ import { authConfig } from "@/auth.config";
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "database" },
+  session: { strategy: "jwt" },
   callbacks: {
     ...authConfig.callbacks,
-    session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as { role?: string }).role ?? "USER";
+      }
+      return token;
+    },
+    session({ session, token }) {
       return {
         ...session,
         user: {
           ...session.user,
-          id: user.id,
-          role: (user as unknown as { role: string }).role ?? "USER",
+          id: token.id as string,
+          role: token.role as string,
         },
       };
     },

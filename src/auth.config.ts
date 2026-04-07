@@ -4,7 +4,10 @@ import Google from "next-auth/providers/google";
 
 // Edge(미들웨어)에서 사용하는 설정 — Prisma 어댑터 없음
 export const authConfig: NextAuthConfig = {
-  providers: [GitHub, Google],
+  providers: [
+    GitHub({ allowDangerousEmailAccountLinking: true }),
+    Google({ allowDangerousEmailAccountLinking: true }),
+  ],
   pages: {
     signIn: "/login",
   },
