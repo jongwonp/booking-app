@@ -1,26 +1,84 @@
-// src/app/listings/page.tsx (대략 예시)
 import { prisma } from "@/lib/prisma";
 import { ListingCard } from "@/components/listing/ListingCard";
+import ListingsFilter from "@/components/listing/ListingsFilter";
+import { Suspense } from "react";
 
-export default async function ListingsPage() {
+type SearchParams = {
+  location?: string;
+  checkIn?: string;
+  checkOut?: string;
+  guests?: string;
+};
+
+export default async function ListingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const { location, checkIn, checkOut, guests } = await searchParams;
+
+  const checkInDate = checkIn ? new Date(checkIn) : null;
+  const checkOutDate = checkOut ? new Date(checkOut) : null;
+  const guestsNum = guests ? parseInt(guests) : null;
+
+  // 날짜 필터: 해당 기간에 겹치는 예약이 있는 listingId 목록을 먼저 구함
+  let excludedListingIds: string[] = [];
+  if (checkInDate && checkOutDate && checkInDate < checkOutDate) {
+    const overlapping = await prisma.reservation.findMany({
+      where: {
+        status: { in: ["HOLD", "CONFIRMED"] },
+        NOT: [
+          { checkOut: { lte: checkInDate } },
+          { checkIn: { gte: checkOutDate } },
+        ],
+      },
+      select: { listingId: true },
+    });
+    excludedListingIds = overlapping.map((r) => r.listingId);
+  }
+
   const listings = await prisma.listing.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      ...(location && {
+        location: { contains: location, mode: "insensitive" },
+      }),
+      ...(guestsNum && { maxGuests: { gte: guestsNum } }),
+      ...(excludedListingIds.length > 0 && {
+        id: { notIn: excludedListingIds },
+      }),
+    },
     orderBy: { createdAt: "desc" },
   });
 
+  const hasFilter = location || checkIn || checkOut || guests;
+
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="mx-auto max-w-5xl space-y-4 px-4 py-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">숙소 목록</h1>
         <p className="text-sm text-slate-600">
           원하는 날짜에 맞는 숙소를 찾아보세요.
         </p>
       </header>
-    <div className="grid gap-4 md:grid-cols-2">
-      {listings.map((listing) => (
-        <ListingCard key={listing.id} listing={listing} />
-      ))}
-    </div>
+
+      <Suspense>
+        <ListingsFilter />
+      </Suspense>
+
+      {listings.length === 0 ? (
+        <div className="rounded-xl border bg-white px-6 py-10 text-center text-sm text-slate-500">
+          {hasFilter
+            ? "조건에 맞는 숙소가 없습니다. 필터를 바꿔보세요."
+            : "등록된 숙소가 없습니다."}
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {listings.map((listing) => (
+            <ListingCard key={listing.id} listing={listing} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
