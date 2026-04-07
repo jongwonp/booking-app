@@ -8,6 +8,7 @@ export default async function MyReservationsPage() {
   const reservations = await prisma.reservation.findMany({
     where: { userId: session!.user.id },
     orderBy: { createdAt: "desc" },
+    include: { listing: { select: { title: true } } },
   });
 
   if (reservations.length === 0) {
@@ -37,10 +38,11 @@ export default async function MyReservationsPage() {
             href={`/reservations/${r.id}`}
             className="block rounded-xl border bg-white px-4 py-3 hover:shadow-sm"
           >
-            <div className="text-sm text-slate-500">
-              {r.checkIn.toDateString()} ~ {r.checkOut.toDateString()}
+            <div className="font-medium text-sm">{r.listing?.title ?? "삭제된 숙소"}</div>
+            <div className="text-sm text-slate-500 mt-0.5">
+              {r.checkIn.toLocaleDateString("ko-KR")} ~ {r.checkOut.toLocaleDateString("ko-KR")}
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-slate-500 mt-0.5">
               상태: <span className="font-semibold">{r.status}</span>
             </div>
           </Link>
