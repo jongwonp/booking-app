@@ -1,12 +1,14 @@
 "use server";
 
-import { prisma } from "@/lib/prisma"; // 경로는 프로젝트에 맞게 수정
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { assertAdmin } from "@/lib/admin";
 
 const ALLOWED_STATUSES = ["HOLD", "CONFIRMED", "CANCELLED"] as const;
 type ReservationStatus = (typeof ALLOWED_STATUSES)[number];
 
 export async function updateReservationStatus(formData: FormData) {
+  await assertAdmin();
   const id = String(formData.get("id") || "");
   const status = String(formData.get("status") || "") as ReservationStatus;
 

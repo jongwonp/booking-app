@@ -1,9 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma"; // 네 프로젝트 경로에 맞게
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { assertAdmin } from "@/lib/admin";
 
 export async function createListing(formData: FormData) {
+  await assertAdmin();
   const title = String(formData.get("title") || "").trim();
   const location = String(formData.get("location") || "").trim();
   const description = String(formData.get("description") || "").trim();
@@ -33,6 +35,7 @@ export async function createListing(formData: FormData) {
 }
 
 export async function updateListing(formData: FormData) {
+  await assertAdmin();
   const id = String(formData.get("id") || "");
   const location = String(formData.get("location") || "");
   const title = String(formData.get("title") || "").trim();
@@ -65,6 +68,7 @@ export async function updateListing(formData: FormData) {
 }
 
 export async function deleteListing(formData: FormData) {
+  await assertAdmin();
   const id = String(formData.get("id") || "");
 
   if (!id) {
