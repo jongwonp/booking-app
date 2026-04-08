@@ -1,21 +1,25 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 
 export default function ListingsFilter() {
   const router = useRouter();
   const params = useSearchParams();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const update = useCallback(
     (key: string, value: string) => {
-      const next = new URLSearchParams(params.toString());
-      if (value) {
-        next.set(key, value);
-      } else {
-        next.delete(key);
-      }
-      router.push(`/listings?${next.toString()}`);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        const next = new URLSearchParams(params.toString());
+        if (value) {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        router.push(`/listings?${next.toString()}`);
+      }, 300);
     },
     [params, router]
   );
