@@ -102,7 +102,4 @@ model Reservation {
 
   @@index([listingId, checkIn])
   @@index([listingId, status])
-  @@unique([listingId, checkIn, checkOut])
-  checkInDate  DateTime? @db.Date @ignore
-  checkOutDate DateTime? @db.Date @ignore
 }
