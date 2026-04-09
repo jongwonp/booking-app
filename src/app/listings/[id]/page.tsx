@@ -10,7 +10,7 @@ export default async function ListingPage({
 }) {
   const { id } = await params;
   const session = await auth();
-  const [listing, reservations] = await Promise.all([
+  const [listing, reservations, calendarBlocks] = await Promise.all([
     prisma.listing.findUnique({
       where: { id },
       select: {
@@ -31,11 +31,23 @@ export default async function ListingPage({
       },
       select: { checkIn: true, checkOut: true },
     }),
+    prisma.calendarBlock.findMany({
+      where: {
+        listingId: id,
+        endDate: { gte: new Date() },
+      },
+      select: { startDate: true, endDate: true },
+    }),
   ]);
 
   const bookedRanges = reservations.map((r) => ({
     from: r.checkIn.toISOString(),
     to: r.checkOut.toISOString(),
+  }));
+
+  const blockedRanges = calendarBlocks.map((b) => ({
+    from: b.startDate.toISOString(),
+    to: b.endDate.toISOString(),
   }));
   if (!listing) {
     return (
@@ -90,6 +102,7 @@ export default async function ListingPage({
               userId={session.user.id!}
               nightlyPrice={listing.nightlyPrice}
               bookedRanges={bookedRanges}
+              blockedRanges={blockedRanges}
             />
           ) : (
             <div className="rounded-xl border p-6 text-center space-y-3">

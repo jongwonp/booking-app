@@ -18,11 +18,13 @@ export default function ReservationWidget({
   userId,
   nightlyPrice,
   bookedRanges = [],
+  blockedRanges = [],
 }: {
   listingId: string;
   userId: string;
   nightlyPrice: number;
   bookedRanges?: BookedRange[];
+  blockedRanges?: BookedRange[];
 }) {
   const [range, setRange] = useState<DateRange | undefined>();
   const [reservationId, setReservationId] = useState<string | null>(null);
@@ -35,11 +37,11 @@ export default function ReservationWidget({
   // 예약 불가 날짜 범위 (react-day-picker disabled prop용)
   const disabledRanges = useMemo(
     () =>
-      bookedRanges.map((r) => ({
+      [...bookedRanges, ...blockedRanges].map((r) => ({
         from: startOfDay(new Date(r.from)),
         to: startOfDay(new Date(r.to)),
       })),
-    [bookedRanges]
+    [bookedRanges, blockedRanges]
   );
 
   const nights = useMemo(() => {

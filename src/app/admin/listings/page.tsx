@@ -78,6 +78,18 @@ export default async function AdminListingsPage() {
                     >
                       수정
                     </Link>
+                    <Link
+                      href={`/admin/listings/${listing.id}/calendar-blocks`}
+                      className="rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                    >
+                      날짜차단
+                    </Link>
+                    <Link
+                      href={`/admin/listings/${listing.id}/price-rules`}
+                      className="rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                    >
+                      가격규칙
+                    </Link>
 
                     <form action={deleteListing} className="inline">
                       <input type="hidden" name="id" value={listing.id} />

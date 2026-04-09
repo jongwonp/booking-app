@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CreateReservation } from "@/lib/validators";
-import { overlapWhere } from "@/lib/overlap";
+import { overlapWhere, calendarBlockOverlapWhere } from "@/lib/overlap";
 import { calcTotal } from "@/lib/pricing";
 export const runtime = "nodejs";
 
@@ -27,12 +27,20 @@ export async function POST(req: Request) {
           throw new Error("invalid-refs");
         }
 
-        const hasOverlap = await tx.reservation.findFirst({
-          where: overlapWhere(v.listingId, checkIn, checkOut),
-        });
+        const [hasOverlap, hasBlock] = await Promise.all([
+          tx.reservation.findFirst({
+            where: overlapWhere(v.listingId, checkIn, checkOut),
+          }),
+          tx.calendarBlock.findFirst({
+            where: calendarBlockOverlapWhere(v.listingId, checkIn, checkOut),
+          }),
+        ]);
+
+        if (hasBlock) {
+          throw new Error("blocked");
+        }
 
         if (hasOverlap) {
-          // → 나중에 catch에서 409 처리
           throw new Error("conflict");
         }
 
@@ -73,6 +81,14 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { ok: false, error: "invalid-refs" },
         { status: 400 }
+      );
+    }
+
+    // ✅ 차단된 날짜
+    if (e?.message === "blocked") {
+      return NextResponse.json(
+        { ok: false, error: "blocked" },
+        { status: 409 }
       );
     }
 

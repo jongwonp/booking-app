@@ -21,20 +21,36 @@ export default async function ListingsPage({
   const checkOutDate = checkOut ? new Date(checkOut) : null;
   const guestsNum = guests ? parseInt(guests) : null;
 
-  // 날짜 필터: 해당 기간에 겹치는 예약이 있는 listingId 목록을 먼저 구함
+  // 날짜 필터: 해당 기간에 겹치는 예약 또는 차단이 있는 listingId를 제외
   let excludedListingIds: string[] = [];
   if (checkInDate && checkOutDate && checkInDate < checkOutDate) {
-    const overlapping = await prisma.reservation.findMany({
-      where: {
-        status: { in: ["HOLD", "CONFIRMED"] },
-        NOT: [
-          { checkOut: { lte: checkInDate } },
-          { checkIn: { gte: checkOutDate } },
-        ],
-      },
-      select: { listingId: true },
-    });
-    excludedListingIds = overlapping.map((r) => r.listingId);
+    const [overlapping, blocked] = await Promise.all([
+      prisma.reservation.findMany({
+        where: {
+          status: { in: ["HOLD", "CONFIRMED"] },
+          NOT: [
+            { checkOut: { lte: checkInDate } },
+            { checkIn: { gte: checkOutDate } },
+          ],
+        },
+        select: { listingId: true },
+      }),
+      prisma.calendarBlock.findMany({
+        where: {
+          NOT: [
+            { endDate: { lte: checkInDate } },
+            { startDate: { gte: checkOutDate } },
+          ],
+        },
+        select: { listingId: true },
+      }),
+    ]);
+    excludedListingIds = [
+      ...new Set([
+        ...overlapping.map((r) => r.listingId),
+        ...blocked.map((b) => b.listingId),
+      ]),
+    ];
   }
 
   const listings = await prisma.listing.findMany({

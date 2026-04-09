@@ -8,3 +8,11 @@ export const overlapWhere = (listingId: string, inAt: Date, outAt: Date, exclude
     { checkIn: { gte: outAt } }, // oldIn >= newOut
   ],
 });
+
+export const calendarBlockOverlapWhere = (listingId: string, inAt: Date, outAt: Date): Prisma.CalendarBlockWhereInput => ({
+  listingId,
+  NOT: [
+    { endDate: { lte: inAt } },
+    { startDate: { gte: outAt } },
+  ],
+});
