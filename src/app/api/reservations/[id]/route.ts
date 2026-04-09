@@ -30,5 +30,5 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   const r = await prisma.reservation.findUnique({ where: { id } });
   if (!r) return NextResponse.json({ ok: false, error: "not found" }, { status: 404 });
   await prisma.reservation.delete({ where: { id } });
-  return new NextResponse(null, { status: 204 });
+  return NextResponse.json({ ok: true });
 }

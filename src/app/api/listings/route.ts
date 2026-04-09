@@ -23,10 +23,13 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-    items,
+    ok: true,
+    data: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      items,
+    },
   });
 }
