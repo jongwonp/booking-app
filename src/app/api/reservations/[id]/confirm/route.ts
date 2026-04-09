@@ -4,9 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { ReservationStatus } from "@prisma/client";
 import { overlapWhere } from "@/lib/overlap";
 import { calcTotal } from "@/lib/pricing";
+import { rateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 export async function PATCH(_req: Request, { params }: { params: { id: string } }) {
+  const limited = rateLimit(_req, { max: 10, windowMs: 60_000 });
+  if (limited) return limited;
+
   try {
     const out = await prisma.$transaction(async (tx) => {
       const { id } = await params;

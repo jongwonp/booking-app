@@ -3,9 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { CreateReservation } from "@/lib/validators";
 import { overlapWhere, calendarBlockOverlapWhere } from "@/lib/overlap";
 import { calcTotalWithRules } from "@/lib/pricing";
+import { rateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const limited = rateLimit(req, { max: 10, windowMs: 60_000 });
+  if (limited) return limited;
+
   try {
     const v = CreateReservation.parse(await req.json());
     const checkIn = new Date(v.checkIn);

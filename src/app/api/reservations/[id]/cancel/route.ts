@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
-export async function PATCH(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const limited = rateLimit(req, { max: 10, windowMs: 60_000 });
+  if (limited) return limited;
   const { id } = await params;
 
   // 1. 예약 조회

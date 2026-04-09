@@ -2,8 +2,11 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const limited = rateLimit(_req, { max: 60, windowMs: 60_000 });
+  if (limited) return limited;
   const { id } = await ctx.params;
   const r = await prisma.reservation.findUnique({ where: { id } });
   if (!r) return NextResponse.json({ ok: false, error: "not found" }, { status: 404 });
@@ -11,6 +14,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 }
 
 export async function PATCH(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const limited = rateLimit(_req, { max: 10, windowMs: 60_000 });
+  if (limited) return limited;
   const { id } = await ctx.params;
   const r = await prisma.reservation.findUnique({ where: { id } });
   if (!r) return NextResponse.json({ ok: false, error: "not found" }, { status: 404 });
@@ -26,6 +31,8 @@ export async function PATCH(_req: Request, ctx: { params: Promise<{ id: string }
 }
 
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const limited = rateLimit(_req, { max: 10, windowMs: 60_000 });
+  if (limited) return limited;
   const { id } = await ctx.params;
   const r = await prisma.reservation.findUnique({ where: { id } });
   if (!r) return NextResponse.json({ ok: false, error: "not found" }, { status: 404 });
