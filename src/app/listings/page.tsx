@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ListingCard } from "@/components/listing/ListingCard";
 import ListingsFilter from "@/components/listing/ListingsFilter";
+import Pagination from "@/components/ui/Pagination";
 import { Suspense } from "react";
 
 type SearchParams = {
@@ -8,14 +9,18 @@ type SearchParams = {
   checkIn?: string;
   checkOut?: string;
   guests?: string;
+  page?: string;
 };
+
+const PAGE_SIZE = 12;
 
 export default async function ListingsPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { location, checkIn, checkOut, guests } = await searchParams;
+  const { location, checkIn, checkOut, guests, page } = await searchParams;
+  const currentPage = Math.max(1, Number(page) || 1);
 
   const checkInDate = checkIn ? new Date(checkIn) : null;
   const checkOutDate = checkOut ? new Date(checkOut) : null;
@@ -53,20 +58,28 @@ export default async function ListingsPage({
     ];
   }
 
-  const listings = await prisma.listing.findMany({
-    where: {
-      isActive: true,
-      ...(location && {
-        location: { contains: location, mode: "insensitive" },
-      }),
-      ...(guestsNum && { maxGuests: { gte: guestsNum } }),
-      ...(excludedListingIds.length > 0 && {
-        id: { notIn: excludedListingIds },
-      }),
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const where = {
+    isActive: true as const,
+    ...(location && {
+      location: { contains: location, mode: "insensitive" as const },
+    }),
+    ...(guestsNum && { maxGuests: { gte: guestsNum } }),
+    ...(excludedListingIds.length > 0 && {
+      id: { notIn: excludedListingIds },
+    }),
+  };
 
+  const [listings, totalCount] = await Promise.all([
+    prisma.listing.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.listing.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const hasFilter = location || checkIn || checkOut || guests;
 
   return (
@@ -89,11 +102,17 @@ export default async function ListingsPage({
             : "등록된 숙소가 없습니다."}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {listings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            {listings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <Pagination currentPage={currentPage} totalPages={totalPages} />
+          )}
+        </>
       )}
     </div>
   );
