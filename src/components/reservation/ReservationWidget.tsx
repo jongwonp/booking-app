@@ -12,6 +12,12 @@ import {
 import Button from "@/components/ui/Button";
 
 type BookedRange = { from: string; to: string };
+type PriceRuleInput = {
+  startDate: string;
+  endDate: string;
+  type: "OVERRIDE" | "PERCENT";
+  value: number;
+};
 
 export default function ReservationWidget({
   listingId,
@@ -19,12 +25,14 @@ export default function ReservationWidget({
   nightlyPrice,
   bookedRanges = [],
   blockedRanges = [],
+  priceRules = [],
 }: {
   listingId: string;
   userId: string;
   nightlyPrice: number;
   bookedRanges?: BookedRange[];
   blockedRanges?: BookedRange[];
+  priceRules?: PriceRuleInput[];
 }) {
   const [range, setRange] = useState<DateRange | undefined>();
   const [reservationId, setReservationId] = useState<string | null>(null);
@@ -50,7 +58,28 @@ export default function ReservationWidget({
     return d > 0 ? d : 0;
   }, [range]);
 
-  const total = nights * nightlyPrice;
+  const total = useMemo(() => {
+    if (!range?.from || !range?.to || nights < 1) return 0;
+    let sum = 0;
+    const cursor = new Date(range.from);
+    const end = new Date(range.to);
+    while (cursor < end) {
+      const rule = priceRules.find((r) => {
+        const s = new Date(r.startDate);
+        const e = new Date(r.endDate);
+        return cursor >= s && cursor < e;
+      });
+      if (rule) {
+        sum += rule.type === "OVERRIDE"
+          ? rule.value
+          : Math.round(nightlyPrice * (1 + rule.value / 100));
+      } else {
+        sum += nightlyPrice;
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return sum;
+  }, [range, nights, nightlyPrice, priceRules]);
 
   // 선택한 범위가 예약된 날짜와 겹치는지 검사
   const hasConflict = useMemo(() => {

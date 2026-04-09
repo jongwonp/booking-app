@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CreateReservation } from "@/lib/validators";
 import { overlapWhere, calendarBlockOverlapWhere } from "@/lib/overlap";
-import { calcTotal } from "@/lib/pricing";
+import { calcTotalWithRules } from "@/lib/pricing";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
@@ -44,7 +44,22 @@ export async function POST(req: Request) {
           throw new Error("conflict");
         }
 
-        const totalPrice = calcTotal(listing.nightlyPrice, checkIn, checkOut);
+        const priceRules = await tx.priceRule.findMany({
+          where: {
+            listingId: v.listingId,
+            NOT: [
+              { endDate: { lte: checkIn } },
+              { startDate: { gte: checkOut } },
+            ],
+          },
+        });
+
+        const totalPrice = calcTotalWithRules(
+          listing.nightlyPrice,
+          checkIn,
+          checkOut,
+          priceRules,
+        );
 
         // 선택해서 반환할 필드만
         const r = await tx.reservation.create({

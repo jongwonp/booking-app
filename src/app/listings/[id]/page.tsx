@@ -10,7 +10,7 @@ export default async function ListingPage({
 }) {
   const { id } = await params;
   const session = await auth();
-  const [listing, reservations, calendarBlocks] = await Promise.all([
+  const [listing, reservations, calendarBlocks, priceRules] = await Promise.all([
     prisma.listing.findUnique({
       where: { id },
       select: {
@@ -38,6 +38,13 @@ export default async function ListingPage({
       },
       select: { startDate: true, endDate: true },
     }),
+    prisma.priceRule.findMany({
+      where: {
+        listingId: id,
+        endDate: { gte: new Date() },
+      },
+      select: { startDate: true, endDate: true, type: true, value: true },
+    }),
   ]);
 
   const bookedRanges = reservations.map((r) => ({
@@ -48,6 +55,13 @@ export default async function ListingPage({
   const blockedRanges = calendarBlocks.map((b) => ({
     from: b.startDate.toISOString(),
     to: b.endDate.toISOString(),
+  }));
+
+  const serializedPriceRules = priceRules.map((r) => ({
+    startDate: r.startDate.toISOString(),
+    endDate: r.endDate.toISOString(),
+    type: r.type,
+    value: r.value,
   }));
   if (!listing) {
     return (
@@ -103,6 +117,7 @@ export default async function ListingPage({
               nightlyPrice={listing.nightlyPrice}
               bookedRanges={bookedRanges}
               blockedRanges={blockedRanges}
+              priceRules={serializedPriceRules}
             />
           ) : (
             <div className="rounded-xl border p-6 text-center space-y-3">
