@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { parseUTCDate } from "@/lib/date";
 import { ListingCard } from "@/components/listing/ListingCard";
 import ListingsFilter from "@/components/listing/ListingsFilter";
 import Pagination from "@/components/ui/Pagination";
@@ -22,8 +23,8 @@ export default async function ListingsPage({
   const { location, checkIn, checkOut, guests, page } = await searchParams;
   const currentPage = Math.max(1, Number(page) || 1);
 
-  const checkInDate = checkIn ? new Date(checkIn) : null;
-  const checkOutDate = checkOut ? new Date(checkOut) : null;
+  const checkInDate = checkIn ? parseUTCDate(checkIn) : null;
+  const checkOutDate = checkOut ? parseUTCDate(checkOut) : null;
   const guestsNum = guests ? parseInt(guests) : null;
 
   // 날짜 필터: 해당 기간에 겹치는 예약 또는 차단이 있는 listingId를 제외

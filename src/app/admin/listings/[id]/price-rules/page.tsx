@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { formatDateKR } from "@/lib/date";
 import { createPriceRule, deletePriceRule } from "./actions";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
@@ -124,7 +125,7 @@ export default async function PriceRulesPage(props: Props) {
             >
               <div>
                 <div className="text-sm font-medium">
-                  {rule.startDate.toLocaleDateString("ko-KR")} ~ {rule.endDate.toLocaleDateString("ko-KR")}
+                  {formatDateKR(rule.startDate)} ~ {formatDateKR(rule.endDate)}
                   {rule.label && (
                     <span className="ml-2 inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
                       {rule.label}

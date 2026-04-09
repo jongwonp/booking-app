@@ -1,5 +1,6 @@
 // src/app/admin/reservations/page.tsx
 import { prisma } from "@/lib/prisma";
+import { formatDateKR } from "@/lib/date";
 import Link from "next/link";
 
 export default async function AdminReservationsPage() {
@@ -35,7 +36,7 @@ export default async function AdminReservationsPage() {
                     {r.listing?.title ?? "삭제된 숙소"}
                   </div>
                   <div className="text-xs text-slate-500">
-                    {r.checkIn.toLocaleDateString("ko-KR")} ~ {r.checkOut.toLocaleDateString("ko-KR")}
+                    {formatDateKR(r.checkIn)} ~ {formatDateKR(r.checkOut)}
                   </div>
                 </div>
                 <div className="text-xs font-semibold text-slate-700">

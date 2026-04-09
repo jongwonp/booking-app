@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { formatDateKR } from "@/lib/date";
 import { createCalendarBlock, deleteCalendarBlock } from "./actions";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
@@ -95,7 +96,7 @@ export default async function CalendarBlocksPage(props: Props) {
             >
               <div>
                 <div className="text-sm font-medium">
-                  {block.startDate.toLocaleDateString("ko-KR")} ~ {block.endDate.toLocaleDateString("ko-KR")}
+                  {formatDateKR(block.startDate)} ~ {formatDateKR(block.endDate)}
                 </div>
                 {block.reason && (
                   <div className="text-xs text-slate-500">{block.reason}</div>

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { CreateReservation } from "@/lib/validators";
 import { overlapWhere, calendarBlockOverlapWhere } from "@/lib/overlap";
 import { calcTotalWithRules } from "@/lib/pricing";
+import { parseUTCDate } from "@/lib/date";
 import { rateLimit } from "@/lib/rate-limit";
 import { auth } from "@/auth";
 export const runtime = "nodejs";
@@ -22,8 +23,8 @@ export async function POST(req: Request) {
 
   try {
     const v = CreateReservation.parse(await req.json());
-    const checkIn = new Date(v.checkIn);
-    const checkOut = new Date(v.checkOut);
+    const checkIn = parseUTCDate(v.checkIn);
+    const checkOut = parseUTCDate(v.checkOut);
 
     const reservation = await prisma.$transaction(
       async (tx) => {

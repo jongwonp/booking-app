@@ -1,12 +1,16 @@
 // src/lib/validators.ts
 import { z } from "zod";
 
-const ISO = z.string().datetime({ offset: true });
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const DateOrISO = z.string().refine(
+  (v) => DATE_ONLY.test(v) || !isNaN(new Date(v).getTime()),
+  { message: "YYYY-MM-DD 또는 ISO 8601 형식이어야 합니다." },
+);
 
 export const CreateReservation = z.object({
   listingId: z.string().min(1),
-  checkIn: ISO,
-  checkOut: ISO,
+  checkIn: DateOrISO,
+  checkOut: DateOrISO,
 }).refine(v => new Date(v.checkOut) > new Date(v.checkIn), { message: "invalid range" })
   .refine(v => (new Date(v.checkOut).getTime() - new Date(v.checkIn).getTime()) >= 86_400_000, { message: "min 1 night" });
 

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { formatDateKR } from "@/lib/date";
 import { confirmReservationAction, cancelReservationAction } from "./actions";
 import Button from "@/components/ui/Button";
 
@@ -38,8 +39,8 @@ export default async function ReservationDetailPage({ params }: Props) {
 
       <section className="space-y-2 text-sm text-slate-700">
         <p>
-          기간: {reservation.checkIn.toLocaleDateString("ko-KR")} ~{" "}
-          {reservation.checkOut.toLocaleDateString("ko-KR")}
+          기간: {formatDateKR(reservation.checkIn)} ~{" "}
+          {formatDateKR(reservation.checkOut)}
         </p>
         <p>
           인원: <span className="font-medium">{reservation.guests ?? 1}명</span>

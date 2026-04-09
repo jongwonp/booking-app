@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { toDateOnlyUTC } from "@/lib/date";
 import ReservationWidget from "@/components/reservation/ReservationWidget";
 export const runtime = "nodejs";
 
@@ -48,18 +49,18 @@ export default async function ListingPage({
   ]);
 
   const bookedRanges = reservations.map((r) => ({
-    from: r.checkIn.toISOString(),
-    to: r.checkOut.toISOString(),
+    from: toDateOnlyUTC(r.checkIn),
+    to: toDateOnlyUTC(r.checkOut),
   }));
 
   const blockedRanges = calendarBlocks.map((b) => ({
-    from: b.startDate.toISOString(),
-    to: b.endDate.toISOString(),
+    from: toDateOnlyUTC(b.startDate),
+    to: toDateOnlyUTC(b.endDate),
   }));
 
   const serializedPriceRules = priceRules.map((r) => ({
-    startDate: r.startDate.toISOString(),
-    endDate: r.endDate.toISOString(),
+    startDate: toDateOnlyUTC(r.startDate),
+    endDate: toDateOnlyUTC(r.endDate),
     type: r.type,
     value: r.value,
   }));

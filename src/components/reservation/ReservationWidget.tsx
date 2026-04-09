@@ -9,6 +9,7 @@ import {
   confirmReservation,
   cancelReservation,
 } from "@/lib/api";
+import { toDateOnly } from "@/lib/date";
 import Button from "@/components/ui/Button";
 
 type BookedRange = { from: string; to: string };
@@ -104,8 +105,8 @@ export default function ReservationWidget({
     try {
       const r = await createReservation({
         listingId,
-        checkIn: range.from.toISOString(),
-        checkOut: range.to.toISOString(),
+        checkIn: toDateOnly(range.from),
+        checkOut: toDateOnly(range.to),
       });
       setReservationId(r.id);
       setStatus(r.status);
