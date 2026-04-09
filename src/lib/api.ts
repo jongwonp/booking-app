@@ -2,7 +2,6 @@
 
 export async function createReservation(input: {
   listingId: string;
-  userId: string;
   checkIn: string;
   checkOut: string;
 }) {

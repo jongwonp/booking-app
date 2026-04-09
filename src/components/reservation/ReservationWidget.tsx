@@ -21,14 +21,12 @@ type PriceRuleInput = {
 
 export default function ReservationWidget({
   listingId,
-  userId,
   nightlyPrice,
   bookedRanges = [],
   blockedRanges = [],
   priceRules = [],
 }: {
   listingId: string;
-  userId: string;
   nightlyPrice: number;
   bookedRanges?: BookedRange[];
   blockedRanges?: BookedRange[];
@@ -106,7 +104,6 @@ export default function ReservationWidget({
     try {
       const r = await createReservation({
         listingId,
-        userId,
         checkIn: range.from.toISOString(),
         checkOut: range.to.toISOString(),
       });

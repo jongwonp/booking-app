@@ -113,7 +113,6 @@ export default async function ListingPage({
           {session?.user ? (
             <ReservationWidget
               listingId={listing.id}
-              userId={session.user.id!}
               nightlyPrice={listing.nightlyPrice}
               bookedRanges={bookedRanges}
               blockedRanges={blockedRanges}

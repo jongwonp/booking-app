@@ -4,11 +4,21 @@ import { CreateReservation } from "@/lib/validators";
 import { overlapWhere, calendarBlockOverlapWhere } from "@/lib/overlap";
 import { calcTotalWithRules } from "@/lib/pricing";
 import { rateLimit } from "@/lib/rate-limit";
+import { auth } from "@/auth";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const limited = rateLimit(req, { max: 10, windowMs: 60_000 });
   if (limited) return limited;
+
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { ok: false, error: "unauthorized" },
+      { status: 401 },
+    );
+  }
+  const userId = session.user.id;
 
   try {
     const v = CreateReservation.parse(await req.json());
@@ -17,17 +27,9 @@ export async function POST(req: Request) {
 
     const reservation = await prisma.$transaction(
       async (tx) => {
-        const [listing, user] = await Promise.all([
-          tx.listing.findUnique({ where: { id: v.listingId } }),
-          tx.user.upsert({
-            where: { id: v.userId },
-            create: { id: v.userId, email: `${v.userId}@demo.local` },
-            update: {},
-          }),
-        ]);
+        const listing = await tx.listing.findUnique({ where: { id: v.listingId } });
 
-        if (!listing || !user) {
-          // → 나중에 catch에서 400 처리
+        if (!listing) {
           throw new Error("invalid-refs");
         }
 
@@ -69,7 +71,7 @@ export async function POST(req: Request) {
         const r = await tx.reservation.create({
           data: {
             listingId: v.listingId,
-            userId: v.userId,
+            userId,
             checkIn,
             checkOut,
             status: "HOLD",
