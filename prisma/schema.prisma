@@ -68,20 +68,55 @@ model VerificationToken {
 }
 
 model Listing {
-  id           String        @id @default(cuid())
-  title        String
-  description  String?
-  nightlyPrice Int
-  location     String
-  maxGuests    Int           @default(2)
-  imageUrls    String[]
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  reservations Reservation[]
+  id             String          @id @default(cuid())
+  title          String
+  description    String?
+  nightlyPrice   Int
+  location       String
+  maxGuests      Int             @default(2)
+  imageUrls      String[]
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  reservations   Reservation[]
+  calendarBlocks CalendarBlock[]
+  priceRules     PriceRule[]
 
   @@index([location])
   @@index([nightlyPrice])
+}
+
+model CalendarBlock {
+  id        String   @id @default(cuid())
+  listingId String
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, startDate])
+}
+
+enum PriceRuleType {
+  OVERRIDE
+  PERCENT
+}
+
+model PriceRule {
+  id        String        @id @default(cuid())
+  listingId String
+  startDate DateTime
+  endDate   DateTime
+  type      PriceRuleType @default(OVERRIDE)
+  value     Int
+  label     String?
+  createdAt DateTime      @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, startDate])
 }
 
 model Reservation {
