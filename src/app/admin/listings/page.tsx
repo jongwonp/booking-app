@@ -1,16 +1,35 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { deleteListing } from "./actions";
-import  Button  from "@/components/ui/Button";
-export default async function AdminListingsPage() {
-  const listings = await prisma.listing.findMany({
-    orderBy: { createdAt: "desc" }, // createdAt 없으면 이 줄은 빼도 됨
-  });
+import Button from "@/components/ui/Button";
+import Pagination from "@/components/ui/Pagination";
+
+const PAGE_SIZE = 20;
+
+export default async function AdminListingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page } = await searchParams;
+  const currentPage = Math.max(1, Number(page) || 1);
+
+  const [listings, totalCount] = await Promise.all([
+    prisma.listing.findMany({
+      orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.listing.count(),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold">숙소 관리</h2>
+        <h2 className="text-2xl font-semibold">숙소 관리 ({totalCount}건)</h2>
         <Link
           href="/admin/listings/new"
           className="rounded bg-black px-4 py-2 text-sm text-white"
@@ -32,6 +51,7 @@ export default async function AdminListingsPage() {
       </Link>
     </div>
       ) : (
+        <>
         <div className="overflow-x-auto border rounded-lg">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50">
@@ -101,6 +121,13 @@ export default async function AdminListingsPage() {
             </tbody>
           </table>
         </div>
+
+          {totalPages > 1 && (
+            <Suspense>
+              <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/admin/listings" />
+            </Suspense>
+          )}
+        </>
       )}
     </section>
   );

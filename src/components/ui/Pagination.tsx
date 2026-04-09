@@ -6,9 +6,11 @@ import Link from "next/link";
 export default function Pagination({
   currentPage,
   totalPages,
+  basePath = "/listings",
 }: {
   currentPage: number;
   totalPages: number;
+  basePath?: string;
 }) {
   const searchParams = useSearchParams();
 
@@ -20,7 +22,7 @@ export default function Pagination({
       params.set("page", String(page));
     }
     const qs = params.toString();
-    return `/listings${qs ? `?${qs}` : ""}`;
+    return `${basePath}${qs ? `?${qs}` : ""}`;
   }
 
   // 표시할 페이지 번호 범위 계산 (최대 5개)
