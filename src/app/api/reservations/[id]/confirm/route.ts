@@ -7,7 +7,7 @@ import { calcTotal } from "@/lib/pricing";
 import { rateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
-export async function PATCH(_req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const limited = rateLimit(_req, { max: 10, windowMs: 60_000 });
   if (limited) return limited;
 
