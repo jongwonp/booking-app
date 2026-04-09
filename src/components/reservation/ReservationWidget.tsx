@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DayPicker, DateRange } from "react-day-picker";
 import { ko } from "date-fns/locale";
 import { isBefore, isWithinInterval, startOfDay } from "date-fns";
@@ -38,6 +38,29 @@ export default function ReservationWidget({
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [holdExpiresAt, setHoldExpiresAt] = useState<Date | null>(null);
+  const [remainSec, setRemainSec] = useState<number | null>(null);
+
+  // HOLD 만료 카운트다운
+  useEffect(() => {
+    if (!holdExpiresAt || status !== "HOLD") {
+      setRemainSec(null);
+      return;
+    }
+    const tick = () => {
+      const left = Math.floor((holdExpiresAt.getTime() - Date.now()) / 1000);
+      if (left <= 0) {
+        setRemainSec(0);
+        setStatus("EXPIRED");
+        setMsg({ type: "err", text: "HOLD 시간이 만료되었습니다. 새로 예약해주세요." });
+      } else {
+        setRemainSec(left);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [holdExpiresAt, status]);
 
   const today = startOfDay(new Date());
 
@@ -110,7 +133,8 @@ export default function ReservationWidget({
       });
       setReservationId(r.id);
       setStatus(r.status);
-      setMsg({ type: "ok", text: "예약이 HOLD로 생성되었습니다." });
+      setHoldExpiresAt(new Date(r.holdExpiresAt));
+      setMsg({ type: "ok", text: "예약이 HOLD로 생성되었습니다. 30분 이내에 확정해주세요." });
     } catch (e: any) {
       setMsg({
         type: "err",
@@ -131,9 +155,16 @@ export default function ReservationWidget({
     try {
       const r = await confirmReservation(reservationId);
       setStatus(r.status);
+      setHoldExpiresAt(null);
       setMsg({ type: "ok", text: "예약이 확정되었습니다." });
     } catch (e: any) {
-      setMsg({ type: "err", text: e?.message || "확정 실패" });
+      if (e?.message === "hold-expired") {
+        setStatus("EXPIRED");
+        setHoldExpiresAt(null);
+        setMsg({ type: "err", text: "HOLD 시간이 만료되었습니다. 새로 예약해주세요." });
+      } else {
+        setMsg({ type: "err", text: e?.message === "conflict" ? "다른 예약과 날짜가 겹칩니다." : "확정에 실패했습니다." });
+      }
     } finally {
       setLoading(false);
     }
@@ -188,6 +219,12 @@ export default function ReservationWidget({
         <p className="text-xs text-red-500">선택한 범위에 이미 예약된 날짜가 포함되어 있습니다.</p>
       )}
 
+      {status === "HOLD" && remainSec !== null && remainSec > 0 && (
+        <div className="rounded-md bg-yellow-100 px-3 py-2 text-sm text-yellow-800">
+          HOLD 남은 시간: <span className="font-semibold">{Math.floor(remainSec / 60)}분 {remainSec % 60}초</span> — 시간 내에 확정해주세요.
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={onCreate}
@@ -199,7 +236,7 @@ export default function ReservationWidget({
 
         <Button
           onClick={onConfirm}
-          disabled={!reservationId || loading || status === "CONFIRMED"}
+          disabled={!reservationId || loading || status === "CONFIRMED" || status === "EXPIRED"}
           data-testid="confirm"
           variant="secondary"
         >
@@ -239,6 +276,8 @@ export default function ReservationWidget({
                 ? "inline-flex items-center rounded-full bg-yellow-200 px-2 py-0.5 text-[11px] font-semibold text-yellow-900"
                 : status === "CANCELLED"
                 ? "inline-flex items-center rounded-full bg-gray-300 px-2 py-0.5 text-[11px] font-semibold text-gray-900"
+                : status === "EXPIRED"
+                ? "inline-flex items-center rounded-full bg-red-200 px-2 py-0.5 text-[11px] font-semibold text-red-900"
                 : "inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-800"
             }
           >

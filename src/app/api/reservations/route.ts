@@ -79,7 +79,7 @@ export async function POST(req: Request) {
             holdExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
             totalPrice,
           },
-          select: { id: true, status: true, totalPrice: true },
+          select: { id: true, status: true, totalPrice: true, holdExpiresAt: true },
         });
 
         return r;

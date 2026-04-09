@@ -16,7 +16,9 @@ export async function PATCH(_req: Request, { params }: { params: { id: string } 
       const { id } = await params;
       const r = await tx.reservation.findUnique({ where: { id } });
       if (!r) return { status: 404 as const, body: { error: "not found" } };
-      if (r.status !== "HOLD" || (r.holdExpiresAt && r.holdExpiresAt < new Date()))
+      if (r.holdExpiresAt && r.holdExpiresAt < new Date())
+        return { status: 410 as const, body: { error: "hold-expired" } };
+      if (r.status !== "HOLD")
         return { status: 409 as const, body: { error: "conflict" } };
 
       // 최신 겹침 재검증
@@ -44,7 +46,7 @@ export async function PATCH(_req: Request, { params }: { params: { id: string } 
     if (out.status === 200) {
       return NextResponse.json({ ok: true, data: out.body }, { status: 200 });
     }
-    return NextResponse.json({ ok: false, ...out.body }, { status: out.status });
+    return NextResponse.json({ ok: false, error: out.body.error }, { status: out.status });
   } catch (e) {
     return NextResponse.json({ ok: false, error: "server" }, { status: 500 });
   }

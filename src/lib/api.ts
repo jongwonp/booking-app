@@ -21,7 +21,7 @@ export async function createReservation(input: {
   }
 
   // json.data는 { id, status, totalPrice }
-  return json.data as { id: string; status: string; totalPrice: number };
+  return json.data as { id: string; status: string; totalPrice: number; holdExpiresAt: string };
 }
 
 export async function confirmReservation(id: string) {
