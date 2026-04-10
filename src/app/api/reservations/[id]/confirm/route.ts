@@ -5,17 +5,25 @@ import { ReservationStatus } from "@prisma/client";
 import { overlapWhere } from "@/lib/overlap";
 import { calcTotal } from "@/lib/pricing";
 import { rateLimit } from "@/lib/rate-limit";
+import { auth } from "@/auth";
 export const runtime = "nodejs";
 
 export async function PATCH(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const limited = rateLimit(_req, { max: 10, windowMs: 60_000 });
   if (limited) return limited;
 
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
   try {
     const out = await prisma.$transaction(async (tx) => {
       const { id } = await params;
       const r = await tx.reservation.findUnique({ where: { id } });
       if (!r) return { status: 404 as const, body: { error: "not found" } };
+      if (r.userId !== session.user.id && session.user.role !== "ADMIN")
+        return { status: 403 as const, body: { error: "forbidden" } };
       if (r.holdExpiresAt && r.holdExpiresAt < new Date())
         return { status: 410 as const, body: { error: "hold-expired" } };
       if (r.status !== "HOLD")
