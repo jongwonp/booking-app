@@ -34,6 +34,10 @@ export async function POST(req: Request) {
           throw new Error("invalid-refs");
         }
 
+        if (v.guests > listing.maxGuests) {
+          throw new Error("too-many-guests");
+        }
+
         const [hasOverlap, hasBlock] = await Promise.all([
           tx.reservation.findFirst({
             where: overlapWhere(v.listingId, checkIn, checkOut),
@@ -75,6 +79,7 @@ export async function POST(req: Request) {
             userId,
             checkIn,
             checkOut,
+            guests: v.guests,
             status: "HOLD",
             holdExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
             totalPrice,
@@ -102,6 +107,14 @@ export async function POST(req: Request) {
     if (e?.message === "invalid-refs") {
       return NextResponse.json(
         { ok: false, error: "invalid-refs" },
+        { status: 400 }
+      );
+    }
+
+    // ✅ 인원이 숙소 최대 인원 초과
+    if (e?.message === "too-many-guests") {
+      return NextResponse.json(
+        { ok: false, error: "too-many-guests" },
         { status: 400 }
       );
     }

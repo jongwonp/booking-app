@@ -4,6 +4,7 @@ export async function createReservation(input: {
   listingId: string;
   checkIn: string;
   checkOut: string;
+  guests: number;
 }) {
   const res = await fetch("/api/reservations", {
     method: "POST",

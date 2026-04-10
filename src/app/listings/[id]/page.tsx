@@ -121,6 +121,7 @@ export default async function ListingPage({
             <ReservationWidget
               listingId={listing.id}
               nightlyPrice={listing.nightlyPrice}
+              maxGuests={listing.maxGuests}
               bookedRanges={bookedRanges}
               blockedRanges={blockedRanges}
               priceRules={serializedPriceRules}

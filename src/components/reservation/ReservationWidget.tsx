@@ -23,17 +23,20 @@ type PriceRuleInput = {
 export default function ReservationWidget({
   listingId,
   nightlyPrice,
+  maxGuests,
   bookedRanges = [],
   blockedRanges = [],
   priceRules = [],
 }: {
   listingId: string;
   nightlyPrice: number;
+  maxGuests: number;
   bookedRanges?: BookedRange[];
   blockedRanges?: BookedRange[];
   priceRules?: PriceRuleInput[];
 }) {
   const [range, setRange] = useState<DateRange | undefined>();
+  const [guests, setGuests] = useState<number>(1);
   const [reservationId, setReservationId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -123,6 +126,10 @@ export default function ReservationWidget({
       setMsg({ type: "err", text: "선택한 날짜에 이미 예약이 있습니다." });
       return;
     }
+    if (guests < 1 || guests > maxGuests) {
+      setMsg({ type: "err", text: `인원은 1명 이상 ${maxGuests}명 이하여야 합니다.` });
+      return;
+    }
     setLoading(true);
     setMsg(null);
     try {
@@ -130,19 +137,22 @@ export default function ReservationWidget({
         listingId,
         checkIn: toDateOnly(range.from),
         checkOut: toDateOnly(range.to),
+        guests,
       });
       setReservationId(r.id);
       setStatus(r.status);
       setHoldExpiresAt(new Date(r.holdExpiresAt));
       setMsg({ type: "ok", text: "예약이 HOLD로 생성되었습니다. 30분 이내에 확정해주세요." });
     } catch (e: any) {
-      setMsg({
-        type: "err",
-        text:
-          e?.message === "conflict"
-            ? "선택한 날짜에 이미 다른 예약이 있습니다. 날짜를 바꿔보세요."
-            : "예약 생성에 실패했습니다. 잠시 후 다시 시도해주세요.",
-      });
+      const text =
+        e?.message === "conflict"
+          ? "선택한 날짜에 이미 다른 예약이 있습니다. 날짜를 바꿔보세요."
+          : e?.message === "too-many-guests"
+          ? `인원이 숙소 최대 인원(${maxGuests}명)을 초과했습니다.`
+          : e?.message === "blocked"
+          ? "선택한 날짜는 예약이 차단되어 있습니다."
+          : "예약 생성에 실패했습니다. 잠시 후 다시 시도해주세요.";
+      setMsg({ type: "err", text });
     } finally {
       setLoading(false);
     }
@@ -203,6 +213,22 @@ export default function ReservationWidget({
           disabled: "text-red-300 line-through opacity-50 cursor-not-allowed",
         }}
       />
+
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <label htmlFor="guests" className="font-medium text-gray-700">
+          인원
+        </label>
+        <input
+          id="guests"
+          type="number"
+          min={1}
+          max={maxGuests}
+          value={guests}
+          onChange={(e) => setGuests(Math.max(1, Math.min(maxGuests, Number(e.target.value) || 1)))}
+          className="w-20 rounded border px-2 py-1 text-right text-sm"
+        />
+        <span className="text-xs text-gray-500">최대 {maxGuests}명</span>
+      </div>
 
       <div className="text-sm text-gray-700">
         1박당 ₩{nightlyPrice?.toLocaleString()} ·{" "}

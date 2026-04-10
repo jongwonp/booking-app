@@ -11,6 +11,7 @@ export const CreateReservation = z.object({
   listingId: z.string().min(1),
   checkIn: DateOrISO,
   checkOut: DateOrISO,
+  guests: z.number().int().min(1, "1명 이상이어야 합니다."),
 }).refine(v => new Date(v.checkOut) > new Date(v.checkIn), { message: "invalid range" })
   .refine(v => (new Date(v.checkOut).getTime() - new Date(v.checkIn).getTime()) >= 86_400_000, { message: "min 1 night" });
 
