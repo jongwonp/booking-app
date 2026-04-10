@@ -11,6 +11,7 @@ export default async function ListingPage({
 }) {
   const { id } = await params;
   const session = await auth();
+  const now = new Date();
   const [listing, reservations, calendarBlocks, priceRules] = await Promise.all([
     prisma.listing.findUnique({
       where: { id },
@@ -24,11 +25,16 @@ export default async function ListingPage({
         description: true,
       },
     }),
+    // 캘린더에 차단으로 표시할 예약: CONFIRMED 또는 아직 만료되지 않은 HOLD.
+    // overlapWhere와 동일한 정책 — 만료된 HOLD는 가용으로 본다.
     prisma.reservation.findMany({
       where: {
         listingId: id,
-        status: { in: ["HOLD", "CONFIRMED"] },
-        checkOut: { gte: new Date() },
+        checkOut: { gte: now },
+        OR: [
+          { status: "CONFIRMED" },
+          { status: "HOLD", holdExpiresAt: { gt: now } },
+        ],
       },
       select: { checkIn: true, checkOut: true },
     }),

@@ -30,10 +30,15 @@ export default async function ListingsPage({
   // 날짜 필터: 해당 기간에 겹치는 예약 또는 차단이 있는 listingId를 제외
   let excludedListingIds: string[] = [];
   if (checkInDate && checkOutDate && checkInDate < checkOutDate) {
+    const now = new Date();
     const [overlapping, blocked] = await Promise.all([
       prisma.reservation.findMany({
         where: {
-          status: { in: ["HOLD", "CONFIRMED"] },
+          // overlapWhere와 동일한 정책: 만료된 HOLD는 가용으로 본다.
+          OR: [
+            { status: "CONFIRMED" },
+            { status: "HOLD", holdExpiresAt: { gt: now } },
+          ],
           NOT: [
             { checkOut: { lte: checkInDate } },
             { checkIn: { gte: checkOutDate } },
