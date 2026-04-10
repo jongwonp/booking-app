@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { notFound } from "next/navigation";
 import { formatDateKR } from "@/lib/date";
 import { confirmReservationAction, cancelReservationAction } from "./actions";
 import Button from "@/components/ui/Button";
@@ -7,6 +9,7 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function ReservationDetailPage({ params }: Props) {
   const { id } = await params;
+  const session = await auth();
   const reservation = await prisma.reservation.findUnique({
     where: { id },
     include: { listing: true },
@@ -21,6 +24,13 @@ export default async function ReservationDetailPage({ params }: Props) {
         </p>
       </div>
     );
+  }
+
+  // 본인 예약이거나 ADMIN만 조회 가능. 그 외에는 존재 자체를 숨김.
+  const isOwner = reservation.userId === session?.user?.id;
+  const isAdmin = session?.user?.role === "ADMIN";
+  if (!isOwner && !isAdmin) {
+    notFound();
   }
 
   const { listing } = reservation;
