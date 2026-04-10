@@ -3,12 +3,12 @@ import { overlapWhere, calendarBlockOverlapWhere } from "@/lib/overlap";
 
 const d = (s: string) => new Date(`${s}T00:00:00Z`);
 const LISTING = "listing-1";
+const NOW = d("2026-04-10");
 
 describe("overlapWhere", () => {
   test("기본 필터 구조가 올바르다", () => {
-    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"));
+    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"), undefined, NOW);
     expect(where.listingId).toBe(LISTING);
-    expect(where.status).toEqual({ in: ["HOLD", "CONFIRMED"] });
     expect(where.NOT).toEqual([
       { checkOut: { lte: d("2026-04-10") } },
       { checkIn: { gte: d("2026-04-12") } },
@@ -16,19 +16,36 @@ describe("overlapWhere", () => {
   });
 
   test("excludeId가 없으면 id 필터가 undefined", () => {
-    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"));
+    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"), undefined, NOW);
     expect(where.id).toBeUndefined();
   });
 
   test("excludeId가 있으면 해당 ID를 제외한다", () => {
-    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"), "res-99");
+    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"), "res-99", NOW);
     expect(where.id).toEqual({ not: "res-99" });
   });
 
-  test("CANCELLED 상태는 제외된다 (HOLD, CONFIRMED만 조회)", () => {
-    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"));
-    const statusFilter = where.status as { in: string[] };
-    expect(statusFilter.in).not.toContain("CANCELLED");
+  test("CANCELLED 상태는 OR 필터에 포함되지 않는다", () => {
+    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"), undefined, NOW);
+    const orFilter = where.OR as Array<{ status: string }>;
+    const statuses = orFilter.map((f) => f.status);
+    expect(statuses).toContain("CONFIRMED");
+    expect(statuses).toContain("HOLD");
+    expect(statuses).not.toContain("CANCELLED");
+  });
+
+  test("HOLD는 holdExpiresAt > now 조건이 함께 붙는다", () => {
+    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"), undefined, NOW);
+    const orFilter = where.OR as Array<{ status: string; holdExpiresAt?: { gt: Date } }>;
+    const holdClause = orFilter.find((f) => f.status === "HOLD");
+    expect(holdClause?.holdExpiresAt).toEqual({ gt: NOW });
+  });
+
+  test("CONFIRMED는 시간 조건 없이 항상 차단한다", () => {
+    const where = overlapWhere(LISTING, d("2026-04-10"), d("2026-04-12"), undefined, NOW);
+    const orFilter = where.OR as Array<{ status: string; holdExpiresAt?: unknown }>;
+    const confirmedClause = orFilter.find((f) => f.status === "CONFIRMED");
+    expect(confirmedClause).toEqual({ status: "CONFIRMED" });
   });
 });
 
