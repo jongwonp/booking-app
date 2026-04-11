@@ -3,28 +3,10 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 
+// jwt/session/authorized 콜백은 모두 authConfig에 정의되어 있다(edge 호환).
+// 여기서는 Prisma 어댑터와 JWT 세션 전략만 추가.
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
-  callbacks: {
-    ...authConfig.callbacks,
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = (user as { role?: string }).role ?? "USER";
-      }
-      return token;
-    },
-    session({ session, token }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id as string,
-          role: token.role as string,
-        },
-      };
-    },
-  },
 });

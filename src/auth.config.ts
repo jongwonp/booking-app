@@ -21,12 +21,39 @@ export const authConfig: NextAuthConfig = {
       if (profile?.email_verified === false) return false;
       return true;
     },
+    // jwt, session 콜백은 미들웨어(edge)에서도 실행되어야 하므로 여기에 둔다.
+    // Prisma를 import하지 않으므로 edge 호환.
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as { role?: string }).role ?? "USER";
+      }
+      return token;
+    },
+    session({ session, token }) {
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.id as string,
+          role: token.role as string,
+        },
+      };
+    },
     authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user;
-      const isProtected =
-        request.nextUrl.pathname.startsWith("/reservations") ||
-        request.nextUrl.pathname.startsWith("/admin");
+      const path = request.nextUrl.pathname;
+      const isAdminRoute = path.startsWith("/admin");
+      const isProtected = path.startsWith("/reservations") || isAdminRoute;
+
       if (isProtected && !isLoggedIn) return false;
+
+      // /admin은 ADMIN 권한이 추가로 필요. 일반 유저는 edge에서 차단.
+      // (서버 컴포넌트의 assertAdmin이 두 번째 방어선)
+      if (isAdminRoute && auth?.user?.role !== "ADMIN") {
+        return false;
+      }
+
       return true;
     },
   },
