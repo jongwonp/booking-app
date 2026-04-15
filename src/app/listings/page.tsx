@@ -10,6 +10,7 @@ type SearchParams = {
   checkIn?: string;
   checkOut?: string;
   guests?: string;
+  sort?: string;
   page?: string;
 };
 
@@ -20,8 +21,16 @@ export default async function ListingsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { location, checkIn, checkOut, guests, page } = await searchParams;
+  const { location, checkIn, checkOut, guests, sort, page } = await searchParams;
   const currentPage = Math.max(1, Number(page) || 1);
+
+  const sortOptions: Record<string, { orderBy: Record<string, "asc" | "desc"> }> = {
+    newest: { orderBy: { createdAt: "desc" } },
+    "price-asc": { orderBy: { nightlyPrice: "asc" } },
+    "price-desc": { orderBy: { nightlyPrice: "desc" } },
+    "guests-desc": { orderBy: { maxGuests: "desc" } },
+  };
+  const { orderBy } = sortOptions[sort ?? ""] ?? sortOptions.newest;
 
   const checkInDate = checkIn ? parseUTCDate(checkIn) : null;
   const checkOutDate = checkOut ? parseUTCDate(checkOut) : null;
@@ -78,7 +87,7 @@ export default async function ListingsPage({
   const [listings, totalCount] = await Promise.all([
     prisma.listing.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy,
       skip: (currentPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),

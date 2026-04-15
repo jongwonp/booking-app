@@ -18,6 +18,8 @@ export default function ListingsFilter() {
         } else {
           next.delete(key);
         }
+        // 필터/정렬이 바뀌면 1페이지부터 다시 보여줘야 함
+        next.delete("page");
         router.push(`/listings?${next.toString()}`);
       }, 300);
     },
@@ -27,10 +29,24 @@ export default function ListingsFilter() {
   const reset = () => router.push("/listings");
 
   const hasFilter =
-    params.has("location") || params.has("guests") || params.has("checkIn") || params.has("checkOut");
+    params.has("location") || params.has("guests") || params.has("checkIn") || params.has("checkOut") || params.has("sort");
 
   return (
     <div className="flex flex-wrap gap-3 items-end rounded-xl border bg-white p-4">
+      <div className="flex flex-col gap-1 min-w-[120px]">
+        <label className="text-xs font-medium text-slate-500">정렬</label>
+        <select
+          defaultValue={params.get("sort") ?? "newest"}
+          onChange={(e) => update("sort", e.target.value === "newest" ? "" : e.target.value)}
+          className="rounded border px-3 py-1.5 text-sm bg-white"
+        >
+          <option value="newest">최신순</option>
+          <option value="price-asc">가격 낮은순</option>
+          <option value="price-desc">가격 높은순</option>
+          <option value="guests-desc">인원 많은순</option>
+        </select>
+      </div>
+
       <div className="flex flex-col gap-1 min-w-[140px]">
         <label className="text-xs font-medium text-slate-500">지역</label>
         <input
