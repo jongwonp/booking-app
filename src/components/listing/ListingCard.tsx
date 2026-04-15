@@ -1,5 +1,6 @@
 // src/components/listing/ListingCard.tsx
 import Link from "next/link";
+import Image from "next/image";
 import type { Listing } from "@prisma/client";
 
 type ListingCardProps = {
@@ -16,11 +17,15 @@ export function ListingCard({ listing }: ListingCardProps) {
       className="border rounded-lg overflow-hidden flex flex-col bg-white hover:shadow-sm transition"
     >
       {thumbnail ? (
-        <img
-          src={thumbnail}
-          alt={listing.title}
-          className="w-full h-48 object-cover"
-        />
+        <div className="relative w-full h-48">
+          <Image
+            src={thumbnail}
+            alt={listing.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover"
+          />
+        </div>
       ) : (
         <div className="w-full h-48 bg-slate-100 flex items-center justify-center text-slate-400 text-sm">
           이미지 없음

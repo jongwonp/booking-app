@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { toDateOnlyUTC } from "@/lib/date";
+import Image from "next/image";
 import ReservationWidget from "@/components/reservation/ReservationWidget";
 export const runtime = "nodejs";
 
@@ -95,12 +96,15 @@ export default async function ListingPage({
       {listing.imageUrls.length > 0 ? (
         <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
           {listing.imageUrls.map((url, i) => (
-            <img
-              key={i}
-              src={url}
-              alt={`${listing.title} 이미지 ${i + 1}`}
-              className="w-full h-48 object-cover rounded-lg"
-            />
+            <div key={i} className="relative h-48 rounded-lg overflow-hidden">
+              <Image
+                src={url}
+                alt={`${listing.title} 이미지 ${i + 1}`}
+                fill
+                sizes="(max-width: 640px) 50vw, 33vw"
+                className="object-cover"
+              />
+            </div>
           ))}
         </div>
       ) : (
