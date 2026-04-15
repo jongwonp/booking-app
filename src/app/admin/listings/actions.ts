@@ -5,6 +5,16 @@ import { redirect } from "next/navigation";
 import { assertAdmin } from "@/lib/admin";
 import { ListingForm, formStr, formNum, formBool } from "@/lib/validators";
 
+/** FormData의 imageUrls 텍스트를 줄바꿈 구분 → string[] 로 파싱 */
+function parseImageUrls(formData: FormData): string[] {
+  const raw = String(formData.get("imageUrls") ?? "").trim();
+  if (!raw) return [];
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
 export async function createListing(formData: FormData) {
   await assertAdmin();
 
@@ -17,7 +27,9 @@ export async function createListing(formData: FormData) {
     isActive: formBool(formData, "isActive"),
   });
 
-  await prisma.listing.create({ data: parsed });
+  const imageUrls = parseImageUrls(formData);
+
+  await prisma.listing.create({ data: { ...parsed, imageUrls } });
 
   redirect("/admin/listings");
 }
@@ -36,7 +48,9 @@ export async function updateListing(formData: FormData) {
     isActive: formBool(formData, "isActive"),
   });
 
-  await prisma.listing.update({ where: { id }, data: parsed });
+  const imageUrls = parseImageUrls(formData);
+
+  await prisma.listing.update({ where: { id }, data: { ...parsed, imageUrls } });
 
   redirect("/admin/listings");
 }

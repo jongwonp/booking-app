@@ -77,6 +77,19 @@ export default function AdminNewListingPage() {
           </div>
         </div>
 
+        <div>
+          <label className="block text-sm font-medium mb-1">이미지 URL</label>
+          <textarea
+            name="imageUrls"
+            rows={3}
+            className="w-full rounded border px-3 py-2 text-sm"
+            placeholder={"한 줄에 하나씩 이미지 URL을 입력하세요.\nhttps://example.com/image1.jpg\nhttps://example.com/image2.jpg"}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            여러 장은 줄바꿈으로 구분합니다.
+          </p>
+        </div>
+
         <div className="flex items-center gap-2">
           <input
             id="isActive"
