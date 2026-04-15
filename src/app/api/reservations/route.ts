@@ -5,6 +5,7 @@ import { overlapWhere, calendarBlockOverlapWhere } from "@/lib/overlap";
 import { calcTotalWithRules } from "@/lib/pricing";
 import { parseUTCDate } from "@/lib/date";
 import { rateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import { auth } from "@/auth";
 export const runtime = "nodejs";
 
@@ -136,7 +137,7 @@ export async function POST(req: Request) {
     }
 
     // ✅ 그 외 서버 에러
-    console.error(e);
+    logger.error("예약 생성 실패", { error: e });
     return NextResponse.json({ ok: false, error: "server" }, { status: 500 });
   }
 }

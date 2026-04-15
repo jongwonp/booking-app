@@ -5,6 +5,7 @@ import { ReservationStatus } from "@prisma/client";
 import { overlapWhere } from "@/lib/overlap";
 import { calcTotal } from "@/lib/pricing";
 import { rateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import { auth } from "@/auth";
 export const runtime = "nodejs";
 
@@ -56,6 +57,7 @@ export async function PATCH(_req: Request, { params }: { params: Promise<{ id: s
     }
     return NextResponse.json({ ok: false, error: out.body.error }, { status: out.status });
   } catch (e) {
+    logger.error("예약 확정 실패", { error: e });
     return NextResponse.json({ ok: false, error: "server" }, { status: 500 });
   }
 }
