@@ -44,7 +44,7 @@ export const authConfig: NextAuthConfig = {
       const isLoggedIn = !!auth?.user;
       const path = request.nextUrl.pathname;
       const isAdminRoute = path.startsWith("/admin");
-      const isProtected = path.startsWith("/reservations") || isAdminRoute;
+      const isProtected = path.startsWith("/reservations") || path === "/me" || isAdminRoute;
 
       if (isProtected && !isLoggedIn) return false;
 

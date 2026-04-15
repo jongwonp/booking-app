@@ -14,6 +14,7 @@ export async function Header() {
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <Link href="/listings">숙소 목록</Link>
+          {user && <Link href="/me">내 정보</Link>}
           {user && <Link href="/reservations">내 예약</Link>}
           {isAdmin && <Link href="/admin/listings">관리자</Link>}
           {user ? (
